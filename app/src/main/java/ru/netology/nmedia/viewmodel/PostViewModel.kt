@@ -37,7 +37,6 @@ private val noPhoto = PhotoModel()
 
 @ExperimentalCoroutinesApi
 class PostViewModel(application: Application) : AndroidViewModel(application) {
-
     private val repository: PostRepository =
         PostRepositoryImpl(
             AppDb.getInstance(context = application).postDao(),
@@ -88,7 +87,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     fun refreshPosts() = viewModelScope.launch {
         try {
             _dataState.value = FeedModelState(refreshing = true)
-            repository.getAll()
+            val lastPostId = data.value?.posts?.firstOrNull()?.id ?: 0L
+            repository.refreshPosts(lastPostId)
             _dataState.value = FeedModelState()
         } catch (e: Exception) {
             _dataState.value = FeedModelState(error = true)

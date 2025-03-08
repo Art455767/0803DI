@@ -28,7 +28,7 @@ class PostRepositoryImpl(
     private val postDao: PostDao,
     private val postWorkDao: PostWorkDao,
 ) : PostRepository {
-    override val data = postDao.getAll()
+    override val data: Flow<List<Post>> = postDao.getAll()
         .map(List<PostEntity>::toDto)
         .flowOn(Dispatchers.Default)
 
@@ -47,6 +47,23 @@ class PostRepositoryImpl(
             throw UnknownError
         }
     }
+
+    suspend fun refreshPosts(lastPostId: Long) {
+        try {
+            val response = Api.service.getNewer(lastPostId)
+            if (!response.isSuccessful) {
+                throw ApiError(response.code(), response.message())
+            }
+
+            val body = response.body() ?: throw ApiError(response.code(), response.message())
+            postDao.insert(body.toEntity())
+        } catch (e: IOException) {
+            throw NetworkError
+        } catch (e: Exception) {
+            throw UnknownError
+        }
+    }
+
 
     override fun getNewerCount(id: Long): Flow<Int> = flow {
         while (true) {
