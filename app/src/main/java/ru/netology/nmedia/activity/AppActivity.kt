@@ -97,20 +97,17 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
             override fun onMenuItemSelected(menuItem: MenuItem): Boolean =
                 when (menuItem.itemId) {
                     R.id.signin -> {
-                        // TODO: just hardcode it, implementation must be in homework
-                        AppAuth.getInstance().setAuth(5, "x-token")
+                        viewModel.login(5, "x-token")
                         true
                     }
 
                     R.id.signup -> {
-                        // TODO: just hardcode it, implementation must be in homework
-                        AppAuth.getInstance().setAuth(5, "x-token")
+                        viewModel.signup()
                         true
                     }
 
                     R.id.signout -> {
-                        // TODO: just hardcode it, implementation must be in homework
-                        AppAuth.getInstance().removeAuth()
+                        viewModel.logout()
                         true
                     }
 
@@ -139,7 +136,7 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
             if (code == ConnectionResult.SUCCESS) {
                 return@with
             }
-            if (isUserResolvableError(code)) {  // Исправлено здесь
+            if (isUserResolvableError(code)) {
                 getErrorDialog(this@AppActivity, code, 9000)?.show()
                 return
             }

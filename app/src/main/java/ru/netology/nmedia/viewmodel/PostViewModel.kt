@@ -37,7 +37,7 @@ private val noPhoto = PhotoModel()
 
 @ExperimentalCoroutinesApi
 class PostViewModel(application: Application) : AndroidViewModel(application) {
-    // упрощённый вариант
+
     private val repository: PostRepository =
         PostRepositoryImpl(
             AppDb.getInstance(context = application).postDao(),
