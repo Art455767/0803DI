@@ -12,8 +12,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import ru.netology.nmedia.api.Api
 import ru.netology.nmedia.dto.PushToken
+import javax.inject.Inject
 
-class AppAuth private constructor(context: Context) {
+class AppAuth @Inject constructor(context: Context) {
     private val prefs = context.getSharedPreferences("auth", Context.MODE_PRIVATE)
     private val idKey = "id"
     private val tokenKey = "token"

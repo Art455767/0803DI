@@ -18,15 +18,20 @@ import com.google.android.gms.common.GoogleApiAvailability
 import com.google.firebase.installations.FirebaseInstallations
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import javax.inject.Inject
 import ru.netology.nmedia.R
 import ru.netology.nmedia.activity.NewPostFragment.Companion.textArg
 import ru.netology.nmedia.viewmodel.AuthViewModel
+import ru.netology.nmedia.viewmodel.PostViewModel
 import ru.netology.nmedia.viewmodel.SmartStatsView
 
 @AndroidEntryPoint
 class AppActivity : AppCompatActivity(R.layout.activity_app) {
-    private val viewModel: AuthViewModel by viewModels()
+    private val authViewModel: AuthViewModel by viewModels()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val postViewModel: PostViewModel by viewModels()
 
     @Inject
     lateinit var firebaseMessaging: FirebaseMessaging
@@ -34,9 +39,9 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
     @Inject
     lateinit var googleApiAvailability: GoogleApiAvailability
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_app)
 
         val statsView = findViewById<SmartStatsView>(R.id.stats)
         statsView.data = listOf(500F, 500F, 500F, 500F)
@@ -61,7 +66,7 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
                 )
         }
 
-        viewModel.data.observe(this) {
+        authViewModel.data.observe(this) {
             invalidateOptionsMenu()
         }
 
@@ -91,27 +96,31 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
         addMenuProvider(object : MenuProvider {
             override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
                 menuInflater.inflate(R.menu.menu_main, menu)
-
                 menu.let {
-                    it.setGroupVisible(R.id.unauthenticated, !viewModel.authenticated)
-                    it.setGroupVisible(R.id.authenticated, viewModel.authenticated)
+                    it.setGroupVisible(R.id.unauthenticated, !authViewModel.authenticated)
+                    it.setGroupVisible(R.id.authenticated, authViewModel.authenticated)
                 }
             }
 
             override fun onMenuItemSelected(menuItem: MenuItem): Boolean =
                 when (menuItem.itemId) {
                     R.id.signin -> {
-                        viewModel.login(5, "x-token")
+                        authViewModel.login(
+                            5, "x-token",
+                            postViewModel = TODO()
+                        )
                         true
                     }
 
                     R.id.signup -> {
-                        viewModel.signup()
+                        authViewModel.signup()
                         true
                     }
 
                     R.id.signout -> {
-                        viewModel.logout()
+                        authViewModel.logout(
+                            postViewModel = TODO()
+                        )
                         true
                     }
 

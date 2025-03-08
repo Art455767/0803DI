@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.core.net.toFile
 import androidx.lifecycle.*
 import androidx.work.*
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
@@ -21,22 +22,11 @@ import ru.netology.nmedia.repository.PostRepository
 import ru.netology.nmedia.repository.PostRepositoryImpl
 import ru.netology.nmedia.util.SingleLiveEvent
 import ru.netology.nmedia.work.SavePostWorker
+import javax.inject.Inject
 
-private val empty = Post(
-    id = 0,
-    content = "",
-    authorId = 0,
-    author = "",
-    authorAvatar = "",
-    likedByMe = false,
-    likes = 0,
-    published = 0,
-)
-
-private val noPhoto = PhotoModel()
-
+@HiltViewModel
 @ExperimentalCoroutinesApi
-class PostViewModel(application: Application) : AndroidViewModel(application) {
+class PostViewModel @Inject constructor(application: Application) : AndroidViewModel(application) {
     private val repository: PostRepository =
         PostRepositoryImpl(
             AppDb.getInstance(context = application).postDao(),
@@ -61,12 +51,25 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     val dataState: LiveData<FeedModelState>
         get() = _dataState
 
-    private val edited = MutableLiveData(empty)
+    private val empty = Post(
+        id = 0,
+        content = "",
+        authorId = 0,
+        author = "",
+        authorAvatar = "",
+        likedByMe = false,
+        likes = 0,
+        published = 0,
+    )
+
+    private val noPhoto = PhotoModel()
+
+    private val edited = MutableLiveData<Post>(empty)
     private val _postCreated = SingleLiveEvent<Unit>()
     val postCreated: LiveData<Unit>
         get() = _postCreated
 
-    private val _photo = MutableLiveData(noPhoto)
+    private val _photo = MutableLiveData<PhotoModel>(noPhoto)
     val photo: LiveData<PhotoModel>
         get() = _photo
 
@@ -146,7 +149,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     fun edit(post: Post) {
         edited.value = post
     }
-
     fun changeContent(content: String) {
         val text = content.trim()
         if (edited.value?.content == text) {
@@ -160,10 +162,23 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun likeById(id: Long) {
-        TODO()
+        viewModelScope.launch {
+            try {
+                repository.likeById(id)
+                refreshPosts()
+            } catch (e: Exception) {
+            }
+        }
     }
 
     fun removeById(id: Long) {
-        TODO()
+        viewModelScope.launch {
+            try {
+                repository.removeById(id)
+                refreshPosts()
+            } catch (e: Exception) {
+
+            }
+        }
     }
 }
