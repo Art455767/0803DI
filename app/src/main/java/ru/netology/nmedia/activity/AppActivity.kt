@@ -23,6 +23,7 @@ import ru.netology.nmedia.R
 import ru.netology.nmedia.activity.NewPostFragment.Companion.textArg
 import ru.netology.nmedia.auth.AppAuth
 import ru.netology.nmedia.viewmodel.AuthViewModel
+import ru.netology.nmedia.viewmodel.SmartStatsView
 
 @AndroidEntryPoint
 class AppActivity : AppCompatActivity(R.layout.activity_app) {
@@ -36,6 +37,9 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val statsView = findViewById<SmartStatsView>(R.id.stats)
+        statsView.data = listOf(500F, 500F, 500F, 500F)
 
         intent?.let {
             if (it.action != Intent.ACTION_SEND) {

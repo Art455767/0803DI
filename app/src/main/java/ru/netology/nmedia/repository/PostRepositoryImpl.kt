@@ -48,7 +48,7 @@ class PostRepositoryImpl(
         }
     }
 
-    suspend fun refreshPosts() {
+    override suspend fun refreshPosts() {
         try {
             val response = Api.service.getAll()
             if (!response.isSuccessful) {
@@ -64,7 +64,7 @@ class PostRepositoryImpl(
         }
     }
 
-    suspend fun prependPosts() {
+    override suspend fun prependPosts() {
         try {
             val response = Api.service.getOlder()
             if (!response.isSuccessful) {
@@ -80,7 +80,7 @@ class PostRepositoryImpl(
         }
     }
 
-    suspend fun appendPosts() {
+    override suspend fun appendPosts() {
         try {
             val response = Api.service.getNewer()
             if (!response.isSuccessful) {
