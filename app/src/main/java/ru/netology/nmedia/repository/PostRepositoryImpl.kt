@@ -48,9 +48,9 @@ class PostRepositoryImpl(
         }
     }
 
-    suspend fun refreshPosts(lastPostId: Long) {
+    suspend fun refreshPosts() {
         try {
-            val response = Api.service.getNewer(lastPostId)
+            val response = Api.service.getAll()
             if (!response.isSuccessful) {
                 throw ApiError(response.code(), response.message())
             }
@@ -64,11 +64,42 @@ class PostRepositoryImpl(
         }
     }
 
+    suspend fun prependPosts() {
+        try {
+            val response = Api.service.getOlder()
+            if (!response.isSuccessful) {
+                throw ApiError(response.code(), response.message())
+            }
+
+            val body = response.body() ?: throw ApiError(response.code(), response.message())
+            postDao.insert(body.toEntity())
+        } catch (e: IOException) {
+            throw NetworkError
+        } catch (e: Exception) {
+            throw UnknownError
+        }
+    }
+
+    suspend fun appendPosts() {
+        try {
+            val response = Api.service.getNewer()
+            if (!response.isSuccessful) {
+                throw ApiError(response.code(), response.message())
+            }
+
+            val body = response.body() ?: throw ApiError(response.code(), response.message())
+            postDao.insert(body.toEntity())
+        } catch (e: IOException) {
+            throw NetworkError
+        } catch (e: Exception) {
+            throw UnknownError
+        }
+    }
 
     override fun getNewerCount(id: Long): Flow<Int> = flow {
         while (true) {
             delay(120_000L)
-            val response = Api.service.getNewer(id)
+            val response = Api.service.getNewer()
             if (!response.isSuccessful) {
                 throw ApiError(response.code(), response.message())
             }

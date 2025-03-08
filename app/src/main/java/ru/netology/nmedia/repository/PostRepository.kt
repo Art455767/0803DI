@@ -16,5 +16,8 @@ interface PostRepository {
     suspend fun upload(upload: MediaUpload): Media
     suspend fun saveWork(post: Post, upload: MediaUpload?): Long
     suspend fun processWork(id: Long)
+    suspend fun refreshPosts()
+    suspend fun prependPosts()
+    suspend fun appendPosts()
 }
 
