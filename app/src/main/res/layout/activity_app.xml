@@ -23,4 +23,11 @@
         android:layout_margin="16dp"
         tools:ignore="MissingClass" />
 
+    <ru.netology.nmedia.viewmodel.RotatingView
+        android:id="@+id/rotating_view"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_alignParentBottom="true"
+        android:layout_margin="16dp" />
+
 </RelativeLayout>

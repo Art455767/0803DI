@@ -21,7 +21,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import ru.netology.nmedia.R
 import ru.netology.nmedia.activity.NewPostFragment.Companion.textArg
-import ru.netology.nmedia.auth.AppAuth
 import ru.netology.nmedia.viewmodel.AuthViewModel
 import ru.netology.nmedia.viewmodel.SmartStatsView
 
@@ -37,6 +36,7 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_app)
 
         val statsView = findViewById<SmartStatsView>(R.id.stats)
         statsView.data = listOf(500F, 500F, 500F, 500F)
