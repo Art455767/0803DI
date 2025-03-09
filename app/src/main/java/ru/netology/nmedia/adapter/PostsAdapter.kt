@@ -1,4 +1,3 @@
-
 package ru.netology.nmedia.adapter
 
 import android.view.LayoutInflater
@@ -24,13 +23,13 @@ interface OnInteractionListener {
 class PostsAdapter(
     private val onInteractionListener: OnInteractionListener,
 ) : PagingDataAdapter<Post, PostViewHolder>(PostDiffCallback()) {
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PostViewHolder {
         val binding = CardPostBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return PostViewHolder(binding, onInteractionListener)
     }
 
     override fun onBindViewHolder(holder: PostViewHolder, position: Int) {
-        // FIXME: students will do in HW
         getItem(position)?.let {
             holder.bind(it)
         }
@@ -64,6 +63,7 @@ class PostViewHolder(
                                 onInteractionListener.onRemove(post)
                                 true
                             }
+
                             R.id.edit -> {
                                 onInteractionListener.onEdit(post)
                                 true
@@ -84,6 +84,10 @@ class PostViewHolder(
             }
         }
     }
+}
+
+fun showLoading() {
+    TODO()
 }
 
 class PostDiffCallback : DiffUtil.ItemCallback<Post>() {

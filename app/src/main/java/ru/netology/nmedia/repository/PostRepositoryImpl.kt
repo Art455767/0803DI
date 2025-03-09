@@ -35,7 +35,7 @@ class PostRepositoryImpl @Inject constructor(
 ) : PostRepository {
 
     override val data: Flow<PagingData<Post>> = Pager(
-        config = PagingConfig(pageSize = 5, enablePlaceholders = false),
+        config = PagingConfig(pageSize = 5, enablePlaceholders = true),
         pagingSourceFactory = { PostPagingSource(apiService) },
     ).flow
 
