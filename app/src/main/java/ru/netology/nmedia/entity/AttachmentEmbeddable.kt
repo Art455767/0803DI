@@ -15,5 +15,3 @@ data class AttachmentEmbeddable(
         }
     }
 }
-
-

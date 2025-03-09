@@ -1,21 +1,22 @@
-package ru.netology.nmedia.di
+package ru.netology.nmedia.db
 
 import android.content.Context
+import androidx.room.Room
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import ru.netology.nmedia.auth.AppAuth
 import javax.inject.Singleton
 
-@Module
 @InstallIn(SingletonComponent::class)
-object AuthModule {
-
+@Module
+object DbModule {
     @Provides
     @Singleton
-    fun provideAppAuth(@ApplicationContext context: Context): AppAuth {
-        return AppAuth(context)
+    fun provideDb(@ApplicationContext context: Context): AppDb {
+        return Room.databaseBuilder(context, AppDb::class.java, "app.db")
+            .fallbackToDestructiveMigration()
+            .build()
     }
 }

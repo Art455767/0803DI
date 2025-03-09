@@ -12,39 +12,34 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.MenuProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
-import com.google.firebase.installations.FirebaseInstallations
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import javax.inject.Inject
+import kotlinx.coroutines.launch
 import ru.netology.nmedia.R
-import ru.netology.nmedia.activity.NewPostFragment.Companion.textArg
+import ru.netology.nmedia.auth.AppAuth
+import ru.netology.nmedia.repository.PostRepository
 import ru.netology.nmedia.viewmodel.AuthViewModel
 import ru.netology.nmedia.viewmodel.PostViewModel
-import ru.netology.nmedia.viewmodel.SmartStatsView
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class AppActivity : AppCompatActivity(R.layout.activity_app) {
-    private val authViewModel: AuthViewModel by viewModels()
+    @Inject
+    lateinit var repository: PostRepository
 
-    @OptIn(ExperimentalCoroutinesApi::class)
+    @Inject
+    lateinit var auth: AppAuth
+    private val viewModel: AuthViewModel by viewModels()
+
     private val postViewModel: PostViewModel by viewModels()
 
-    @Inject
-    lateinit var firebaseMessaging: FirebaseMessaging
 
-    @Inject
-    lateinit var googleApiAvailability: GoogleApiAvailability
-
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val statsView = findViewById<SmartStatsView>(R.id.stats)
-        statsView.data = listOf(500F, 500F, 500F, 500F)
 
         intent?.let {
             if (it.action != Intent.ACTION_SEND) {
@@ -61,26 +56,16 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
                 .navigate(
                     R.id.action_feedFragment_to_newPostFragment,
                     Bundle().apply {
-                        textArg = text
+                        var textArg = text
                     }
                 )
         }
 
-        authViewModel.data.observe(this) {
+        viewModel.data.observe(this) {
             invalidateOptionsMenu()
         }
 
-        FirebaseInstallations.getInstance().id.addOnCompleteListener { task ->
-            if (!task.isSuccessful) {
-                println("some stuff happened: ${task.exception}")
-                return@addOnCompleteListener
-            }
-
-            val token = task.result
-            println(token)
-        }
-
-        firebaseMessaging.token.addOnCompleteListener { task ->
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (!task.isSuccessful) {
                 println("some stuff happened: ${task.exception}")
                 return@addOnCompleteListener
@@ -91,41 +76,45 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
         }
 
         checkGoogleApiAvailability()
+
         requestNotificationsPermission()
 
         addMenuProvider(object : MenuProvider {
             override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
                 menuInflater.inflate(R.menu.menu_main, menu)
+
                 menu.let {
-                    it.setGroupVisible(R.id.unauthenticated, !authViewModel.authenticated)
-                    it.setGroupVisible(R.id.authenticated, authViewModel.authenticated)
+                    it.setGroupVisible(R.id.unauthenticated, !viewModel.authenticated)
+                    it.setGroupVisible(R.id.authenticated, viewModel.authenticated)
                 }
             }
 
             override fun onMenuItemSelected(menuItem: MenuItem): Boolean =
                 when (menuItem.itemId) {
                     R.id.signin -> {
-                        authViewModel.login(
-                            5, "x-token",
-                            postViewModel = TODO()
-                        )
+                        // TODO: just hardcode it, implementation must be in homework
+                        auth.setAuth(5, "x-token")
+                        refreshPosts()
                         true
                     }
 
                     R.id.signup -> {
-                        authViewModel.signup()
+                        // TODO: just hardcode it, implementation must be in homework
+                        auth.setAuth(5, "x-token")
+                        refreshPosts()
                         true
                     }
 
                     R.id.signout -> {
-                        authViewModel.logout(
-                            postViewModel = TODO()
-                        )
+                        // TODO: just hardcode it, implementation must be in homework
+                        auth.removeAuth()
+                        refreshPosts()
                         true
                     }
 
                     else -> false
                 }
+
         })
     }
 
@@ -144,7 +133,7 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
     }
 
     private fun checkGoogleApiAvailability() {
-        with(googleApiAvailability) {
+        with(GoogleApiAvailability.getInstance()) {
             val code = isGooglePlayServicesAvailable(this@AppActivity)
             if (code == ConnectionResult.SUCCESS) {
                 return@with
@@ -155,6 +144,17 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
             }
             Toast.makeText(this@AppActivity, R.string.google_play_unavailable, Toast.LENGTH_LONG)
                 .show()
+        }
+    }
+
+    private fun refreshPosts() {
+        lifecycleScope.launch {
+            try {
+                postViewModel.refreshPosts()
+            } catch (e: Exception) {
+                Toast.makeText(this@AppActivity, "Ошибка обновления постов", Toast.LENGTH_SHORT)
+                    .show()
+            }
         }
     }
 }

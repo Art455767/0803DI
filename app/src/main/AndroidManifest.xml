@@ -1,5 +1,6 @@
-<manifest xmlns:tools="http://schemas.android.com/tools"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -12,10 +13,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        android:name=".hilt.NMediaApplication"
-        android:usesCleartextTraffic="${usesCleartextTraffic}"
-        tools:ignore="UnusedAttribute">
-
+        android:name=".application.NMediaApplication"
+        android:usesCleartextTraffic="${usesCleartextTraffic}">
         <activity
             android:name=".activity.AppActivity"
             android:exported="true">
@@ -23,15 +22,17 @@
 
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
+
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:mimeType="text/plain" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <service
             android:name=".service.FCMService"
             android:exported="false">
@@ -42,6 +43,7 @@
     </application>
 
     <queries>
+        <!-- Camera: https://github.com/Dhaval2404/ImagePicker/issues/143 -->
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
         </intent>

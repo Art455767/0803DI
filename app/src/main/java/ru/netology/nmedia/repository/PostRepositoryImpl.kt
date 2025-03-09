@@ -1,22 +1,23 @@
 package ru.netology.nmedia.repository
 
-import android.net.Uri
-import androidx.core.net.toFile
-import androidx.core.net.toUri
-import androidx.lifecycle.*
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
-import ru.netology.nmedia.api.*
-import ru.netology.nmedia.auth.AppAuth
+import ru.netology.nmedia.api.ApiService
 import ru.netology.nmedia.dao.PostDao
-import ru.netology.nmedia.dao.PostWorkDao
-import ru.netology.nmedia.dto.*
+import ru.netology.nmedia.dto.Attachment
+import ru.netology.nmedia.dto.Media
+import ru.netology.nmedia.dto.MediaUpload
+import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.entity.PostEntity
-import ru.netology.nmedia.entity.PostWorkEntity
-import ru.netology.nmedia.entity.toDto
 import ru.netology.nmedia.entity.toEntity
 import ru.netology.nmedia.enumeration.AttachmentType
 import ru.netology.nmedia.error.ApiError
@@ -24,68 +25,23 @@ import ru.netology.nmedia.error.AppError
 import ru.netology.nmedia.error.NetworkError
 import ru.netology.nmedia.error.UnknownError
 import java.io.IOException
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class PostRepositoryImpl(
+@Singleton
+class PostRepositoryImpl @Inject constructor(
     private val postDao: PostDao,
-    private val postWorkDao: PostWorkDao,
-    private val appAuth: AppAuth,
-    private val apiService: ApiService
+    private val apiService: ApiService,
 ) : PostRepository {
-    override val data: Flow<List<Post>> = postDao.getAll()
-        .map(List<PostEntity>::toDto)
-        .flowOn(Dispatchers.Default)
+
+    override val data: Flow<PagingData<Post>> = Pager(
+        config = PagingConfig(pageSize = 5, enablePlaceholders = false),
+        pagingSourceFactory = { PostPagingSource(apiService) },
+    ).flow
 
     override suspend fun getAll() {
         try {
-            val response = Api.service.getAll()
-            if (!response.isSuccessful) {
-                throw ApiError(response.code(), response.message())
-            }
-
-            val body = response.body() ?: throw ApiError(response.code(), response.message())
-            postDao.insert(body.toEntity())
-        } catch (e: IOException) {
-            throw NetworkError
-        } catch (e: Exception) {
-            throw UnknownError
-        }
-    }
-
-    override suspend fun refreshPosts() {
-        try {
-            val response = Api.service.getAll()
-            if (!response.isSuccessful) {
-                throw ApiError(response.code(), response.message())
-            }
-
-            val body = response.body() ?: throw ApiError(response.code(), response.message())
-            postDao.insert(body.toEntity())
-        } catch (e: IOException) {
-            throw NetworkError
-        } catch (e: Exception) {
-            throw UnknownError
-        }
-    }
-
-    override suspend fun prependPosts() {
-        try {
-            val response = Api.service.getOlder()
-            if (!response.isSuccessful) {
-                throw ApiError(response.code(), response.message())
-            }
-
-            val body = response.body() ?: throw ApiError(response.code(), response.message())
-            postDao.insert(body.toEntity())
-        } catch (e: IOException) {
-            throw NetworkError
-        } catch (e: Exception) {
-            throw UnknownError
-        }
-    }
-
-    override suspend fun appendPosts() {
-        try {
-            val response = Api.service.getNewer()
+            val response = apiService.getAll()
             if (!response.isSuccessful) {
                 throw ApiError(response.code(), response.message())
             }
@@ -102,7 +58,7 @@ class PostRepositoryImpl(
     override fun getNewerCount(id: Long): Flow<Int> = flow {
         while (true) {
             delay(120_000L)
-            val response = Api.service.getNewer()
+            val response = apiService.getNewer(id)
             if (!response.isSuccessful) {
                 throw ApiError(response.code(), response.message())
             }
@@ -115,9 +71,15 @@ class PostRepositoryImpl(
         .catch { e -> throw AppError.from(e) }
         .flowOn(Dispatchers.Default)
 
-    override suspend fun save(post: Post) {
+    override suspend fun save(post: Post, upload: MediaUpload?) {
         try {
-            val response = Api.service.save(post)
+            val postWithAttachment = upload?.let {
+                upload(it)
+            }?.let {
+                // TODO: add support for other types
+                post.copy(attachment = Attachment(it.id, AttachmentType.IMAGE))
+            }
+            val response = apiService.save(postWithAttachment ?: post)
             if (!response.isSuccessful) {
                 throw ApiError(response.code(), response.message())
             }
@@ -139,29 +101,13 @@ class PostRepositoryImpl(
         TODO("Not yet implemented")
     }
 
-    override suspend fun saveWithAttachment(post: Post, upload: MediaUpload) {
-        try {
-            val media = upload(upload)
-            // TODO: add support for other types
-            val postWithAttachment =
-                post.copy(attachment = Attachment(media.id, AttachmentType.IMAGE))
-            save(postWithAttachment)
-        } catch (e: AppError) {
-            throw e
-        } catch (e: IOException) {
-            throw NetworkError
-        } catch (e: Exception) {
-            throw UnknownError
-        }
-    }
-
     override suspend fun upload(upload: MediaUpload): Media {
         try {
             val media = MultipartBody.Part.createFormData(
                 "file", upload.file.name, upload.file.asRequestBody()
             )
 
-            val response = Api.service.upload(media)
+            val response = apiService.upload(media)
             if (!response.isSuccessful) {
                 throw ApiError(response.code(), response.message())
             }
@@ -174,29 +120,11 @@ class PostRepositoryImpl(
         }
     }
 
-    override suspend fun saveWork(post: Post, upload: MediaUpload?): Long {
-        try {
-            val entity = PostWorkEntity.fromDto(post).apply {
-                if (upload != null) {
-                    this.uri = upload.file.toUri().toString()
-                }
-            }
-            return postWorkDao.insert(entity)
-        } catch (e: Exception) {
-            throw UnknownError
+    override suspend fun refreshPost(): List<Post> {
+        val response = apiService.getLatest(10)
+        if (!response.isSuccessful) {
+            throw ApiError(response.code(), response.message())
         }
-    }
-
-    override suspend fun processWork(id: Long) {
-        try {
-            // TODO: handle this in homework
-            val entity = postWorkDao.getById(id)
-            if (entity.uri != null) {
-                val upload = MediaUpload(Uri.parse(entity.uri).toFile())
-            }
-            println(entity.id)
-        } catch (e: Exception) {
-            throw UnknownError
-        }
+        return response.body() ?: emptyList()
     }
 }

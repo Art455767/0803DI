@@ -1,77 +1,66 @@
 package ru.netology.nmedia.viewmodel
 
-import android.app.Application
 import android.net.Uri
 import androidx.core.net.toFile
 import androidx.lifecycle.*
-import androidx.work.*
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import androidx.paging.map
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import ru.netology.nmedia.auth.AppAuth
-import ru.netology.nmedia.db.AppDb
 import ru.netology.nmedia.dto.MediaUpload
 import ru.netology.nmedia.dto.Post
-import ru.netology.nmedia.model.FeedModel
 import ru.netology.nmedia.model.FeedModelState
 import ru.netology.nmedia.model.PhotoModel
 import ru.netology.nmedia.repository.PostRepository
-import ru.netology.nmedia.repository.PostRepositoryImpl
 import ru.netology.nmedia.util.SingleLiveEvent
-import ru.netology.nmedia.work.SavePostWorker
 import javax.inject.Inject
 
-@HiltViewModel
-@ExperimentalCoroutinesApi
-class PostViewModel @Inject constructor(application: Application) : AndroidViewModel(application) {
-    private val repository: PostRepository =
-        PostRepositoryImpl(
-            AppDb.getInstance(context = application).postDao(),
-            AppDb.getInstance(context = application).postWorkDao(),
-            appAuth = TODO(),
-            apiService = TODO(),
-        )
-    private val workManager: WorkManager =
-        WorkManager.getInstance(application)
+private val empty = Post(
+    id = 0,
+    content = "",
+    authorId = 0,
+    author = "",
+    authorAvatar = "",
+    likedByMe = false,
+    likes = 0,
+    published = 0,
+)
 
-    val data: LiveData<FeedModel> = AppAuth.getInstance()
-        .authStateFlow
+private val noPhoto = PhotoModel()
+
+@OptIn(ExperimentalCoroutinesApi::class)
+@HiltViewModel
+class PostViewModel @Inject constructor(
+    private val repository: PostRepository,
+    auth: AppAuth,
+) : ViewModel() {
+    private val cached = repository
+        .data
+        .cachedIn(viewModelScope)
+
+    val data: Flow<PagingData<Post>> = auth.authStateFlow
         .flatMapLatest { (myId, _) ->
-            repository.data
-                .map { posts ->
-                    FeedModel(
-                        posts.map { it.copy(ownedByMe = it.authorId == myId) },
-                        posts.isEmpty()
-                    )
+            cached.map { pagingData ->
+                pagingData.map { post ->
+                    post.copy(ownedByMe = post.authorId == myId)
                 }
-        }.asLiveData(Dispatchers.Default)
+            }
+        }
 
     private val _dataState = MutableLiveData<FeedModelState>()
     val dataState: LiveData<FeedModelState>
         get() = _dataState
 
-    private val empty = Post(
-        id = 0,
-        content = "",
-        authorId = 0,
-        author = "",
-        authorAvatar = "",
-        likedByMe = false,
-        likes = 0,
-        published = 0,
-    )
-
-    private val noPhoto = PhotoModel()
-
-    private val edited = MutableLiveData<Post>(empty)
+    private val edited = MutableLiveData(empty)
     private val _postCreated = SingleLiveEvent<Unit>()
     val postCreated: LiveData<Unit>
         get() = _postCreated
 
-    private val _photo = MutableLiveData<PhotoModel>(noPhoto)
+    private val _photo = MutableLiveData(noPhoto)
     val photo: LiveData<PhotoModel>
         get() = _photo
 
@@ -82,7 +71,7 @@ class PostViewModel @Inject constructor(application: Application) : AndroidViewM
     fun loadPosts() = viewModelScope.launch {
         try {
             _dataState.value = FeedModelState(loading = true)
-            repository.getAll()
+            // repository.stream.cachedIn(viewModelScope).
             _dataState.value = FeedModelState()
         } catch (e: Exception) {
             _dataState.value = FeedModelState(error = true)
@@ -92,27 +81,6 @@ class PostViewModel @Inject constructor(application: Application) : AndroidViewM
     fun refreshPosts() = viewModelScope.launch {
         try {
             _dataState.value = FeedModelState(refreshing = true)
-            repository.refreshPosts()
-            _dataState.value = FeedModelState()
-        } catch (e: Exception) {
-            _dataState.value = FeedModelState(error = true)
-        }
-    }
-
-    fun prependPosts() = viewModelScope.launch {
-        try {
-            _dataState.value = FeedModelState(loading = true)
-            repository.prependPosts()
-            _dataState.value = FeedModelState()
-        } catch (e: Exception) {
-            _dataState.value = FeedModelState(error = true)
-        }
-    }
-
-    fun appendPosts() = viewModelScope.launch {
-        try {
-            _dataState.value = FeedModelState(loading = true)
-            repository.appendPosts()
             _dataState.value = FeedModelState()
         } catch (e: Exception) {
             _dataState.value = FeedModelState(error = true)
@@ -121,26 +89,15 @@ class PostViewModel @Inject constructor(application: Application) : AndroidViewM
 
     fun save() {
         edited.value?.let {
-            _postCreated.value = Unit
             viewModelScope.launch {
                 try {
-                    val id = repository.saveWork(
+                    repository.save(
                         it, _photo.value?.uri?.let { MediaUpload(it.toFile()) }
                     )
-                    val data = workDataOf(SavePostWorker.postKey to id)
-                    val constraints = Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
-                        .build()
-                    val request = OneTimeWorkRequestBuilder<SavePostWorker>()
-                        .setInputData(data)
-                        .setConstraints(constraints)
-                        .build()
-                    workManager.enqueue(request)
 
-                    _dataState.value = FeedModelState()
+                    _postCreated.value = Unit
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    _dataState.value = FeedModelState(error = true)
                 }
             }
         }
@@ -151,6 +108,7 @@ class PostViewModel @Inject constructor(application: Application) : AndroidViewM
     fun edit(post: Post) {
         edited.value = post
     }
+
     fun changeContent(content: String) {
         val text = content.trim()
         if (edited.value?.content == text) {
@@ -164,23 +122,10 @@ class PostViewModel @Inject constructor(application: Application) : AndroidViewM
     }
 
     fun likeById(id: Long) {
-        viewModelScope.launch {
-            try {
-                repository.likeById(id)
-                refreshPosts()
-            } catch (e: Exception) {
-            }
-        }
+        TODO()
     }
 
     fun removeById(id: Long) {
-        viewModelScope.launch {
-            try {
-                repository.removeById(id)
-                refreshPosts()
-            } catch (e: Exception) {
-
-            }
-        }
+        TODO()
     }
 }
