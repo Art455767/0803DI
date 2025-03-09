@@ -19,7 +19,6 @@ class SmartStatsView @JvmOverloads constructor(
     var data: List<Float>
         get() = percentages
         set(value) {
-
             val total = value.sum()
             percentages = if (total > 0) {
                 value.map { it / total }
@@ -36,10 +35,9 @@ class SmartStatsView @JvmOverloads constructor(
         val height = height.toFloat()
         val radius = Math.min(width, height) / 2
 
-
         var startAngle = -90f
 
-        percentages.forEach { percentage ->
+        percentages.forEachIndexed { index, percentage ->
             val sweepAngle = percentage * 360
             paint.color = Color.HSVToColor(floatArrayOf(startAngle + sweepAngle / 2, 1f, 1f))
             canvas.drawArc(
@@ -54,6 +52,12 @@ class SmartStatsView @JvmOverloads constructor(
             )
             startAngle += sweepAngle
 
+            if (index == 0) {
+                paint.color = Color.RED
+                val x = (width / 2 + radius * Math.cos(Math.toRadians(startAngle - sweepAngle.toDouble()))).toFloat()
+                val y = (height / 2 + radius * Math.sin(Math.toRadians(startAngle - sweepAngle.toDouble()))).toFloat()
+                canvas.drawCircle(x, y, 10f, paint)
+            }
         }
     }
 }
