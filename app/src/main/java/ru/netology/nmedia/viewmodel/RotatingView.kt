@@ -23,7 +23,6 @@ class RotatingView @JvmOverloads constructor(
 
         startRotationAnimation()
     }
-
     private fun startRotationAnimation() {
         val animator = ValueAnimator.ofFloat(0f, 360f)
         animator.duration = 2000
