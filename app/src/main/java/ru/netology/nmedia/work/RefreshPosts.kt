@@ -22,6 +22,8 @@ class RefreshPostsWorker(
             PostRepositoryImpl(
                 AppDb.getInstance(context = applicationContext).postDao(),
                 AppDb.getInstance(context = applicationContext).postWorkDao(),
+                appAuth = TODO(),
+                apiService = TODO(),
             )
 
         try {

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.*
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import ru.netology.nmedia.api.*
+import ru.netology.nmedia.auth.AppAuth
 import ru.netology.nmedia.dao.PostDao
 import ru.netology.nmedia.dao.PostWorkDao
 import ru.netology.nmedia.dto.*
@@ -27,6 +28,8 @@ import java.io.IOException
 class PostRepositoryImpl(
     private val postDao: PostDao,
     private val postWorkDao: PostWorkDao,
+    private val appAuth: AppAuth,
+    private val apiService: ApiService
 ) : PostRepository {
     override val data: Flow<List<Post>> = postDao.getAll()
         .map(List<PostEntity>::toDto)

@@ -31,6 +31,8 @@ class PostViewModel @Inject constructor(application: Application) : AndroidViewM
         PostRepositoryImpl(
             AppDb.getInstance(context = application).postDao(),
             AppDb.getInstance(context = application).postWorkDao(),
+            appAuth = TODO(),
+            apiService = TODO(),
         )
     private val workManager: WorkManager =
         WorkManager.getInstance(application)

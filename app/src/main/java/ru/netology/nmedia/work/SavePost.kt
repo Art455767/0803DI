@@ -24,6 +24,8 @@ class SavePostWorker(
             PostRepositoryImpl(
                 AppDb.getInstance(context = applicationContext).postDao(),
                 AppDb.getInstance(context = applicationContext).postWorkDao(),
+                appAuth = TODO(),
+                apiService = TODO(),
             )
         return try {
             repository.processWork(id)
