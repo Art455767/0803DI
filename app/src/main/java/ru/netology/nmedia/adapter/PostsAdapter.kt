@@ -25,70 +25,86 @@ interface OnInteractionListener {
 
 class PostsAdapter(
     private val onInteractionListener: OnInteractionListener,
-) : PagingDataAdapter<Post, PostViewHolder>(PostDiffCallback()) {
+) : PagingDataAdapter<Post, RecyclerView.ViewHolder>(PostDiffCallback()) {
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PostViewHolder {
-        val binding = CardPostBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return PostViewHolder(binding, onInteractionListener)
+    private val VIEW_TYPE_ITEM = 0
+    private val VIEW_TYPE_LOADING = 1
+
+    override fun getItemViewType(position: Int): Int {
+        return if (getItem(position) == null) VIEW_TYPE_LOADING else VIEW_TYPE_ITEM
     }
 
-    override fun onBindViewHolder(holder: PostViewHolder, position: Int) {
-        getItem(position)?.let {
-            holder.bind(it)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        return if (viewType == VIEW_TYPE_LOADING) {
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.loading_item, parent, false)
+            LoadingViewHolder(view)
+        } else {
+            val binding = CardPostBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            PostViewHolder(binding, onInteractionListener)
         }
     }
-}
 
-class PostViewHolder(
-    private val binding: CardPostBinding,
-    private val onInteractionListener: OnInteractionListener,
-) : RecyclerView.ViewHolder(binding.root) {
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        if (holder is PostViewHolder) {
+            getItem(position)?.let {
+                holder.bind(it)
+            }
+        }
+    }
 
-    @SuppressLint("SetTextI18n")
-    fun bind(post: Post) {
-        binding.apply {
-            author.text = post.author
-            published.text = post.published.toString()
-            content.text = post.content
-            avatar.loadCircleCrop("${BuildConfig.BASE_URL}/avatars/${post.authorAvatar}")
-            like.isChecked = post.likedByMe
-            like.text = "${post.likes}"
+    class LoadingViewHolder(view: View) : RecyclerView.ViewHolder(view)
 
-            menu.visibility = if (post.ownedByMe) View.VISIBLE else View.INVISIBLE
+    class PostViewHolder(
+        private val binding: CardPostBinding,
+        private val onInteractionListener: OnInteractionListener,
+    ) : RecyclerView.ViewHolder(binding.root) {
 
-            menu.setOnClickListener {
-                PopupMenu(it.context, it).apply {
-                    inflate(R.menu.options_post)
-                    menu.setGroupVisible(R.id.owned, post.ownedByMe)
-                    setOnMenuItemClickListener { item ->
-                        when (item.itemId) {
-                            R.id.remove -> {
-                                onInteractionListener.onRemove(post)
-                                true
+        @SuppressLint("SetTextI18n")
+        fun bind(post: Post) {
+            binding.apply {
+                author.text = post.author
+                published.text = post.published.toString()
+                content.text = post.content
+                avatar.loadCircleCrop("${BuildConfig.BASE_URL}/avatars/${post.authorAvatar}")
+                like.isChecked = post.likedByMe
+                like.text = "${post.likes}"
+
+                menu.visibility = if (post.ownedByMe) View.VISIBLE else View.INVISIBLE
+
+                menu.setOnClickListener {
+                    PopupMenu(it.context, it).apply {
+                        inflate(R.menu.options_post)
+                        menu.setGroupVisible(R.id.owned, post.ownedByMe)
+                        setOnMenuItemClickListener { item ->
+                            when (item.itemId) {
+                                R.id.remove -> {
+                                    onInteractionListener.onRemove(post)
+                                    true
+                                }
+                                R.id.edit -> {
+                                    onInteractionListener.onEdit(post)
+                                    true
+                                }
+                                else -> false
                             }
-                            R.id.edit -> {
-                                onInteractionListener.onEdit(post)
-                                true
-                            }
-                            else -> false
                         }
-                    }
-                }.show()
-            }
+                    }.show()
+                }
 
-            like.setOnClickListener {
-                val scaleX = PropertyValuesHolder.ofFloat(View.SCALE_X, 1F, 1.25F, 1F)
-                val scaleY = PropertyValuesHolder.ofFloat(View.SCALE_Y, 1F, 1.25F, 1F)
-                ObjectAnimator.ofPropertyValuesHolder(it, scaleX, scaleY).apply {
-                    duration = 500
-                    repeatCount = 1
-                    interpolator = android.view.animation.BounceInterpolator()
-                }.start()
-                onInteractionListener.onLike(post)
-            }
+                like.setOnClickListener {
+                    val scaleX = PropertyValuesHolder.ofFloat(View.SCALE_X, 1F, 1.25F, 1F)
+                    val scaleY = PropertyValuesHolder.ofFloat(View.SCALE_Y, 1F, 1.25F, 1F)
+                    ObjectAnimator.ofPropertyValuesHolder(it, scaleX, scaleY).apply {
+                        duration = 500
+                        repeatCount = 1
+                        interpolator = android.view.animation.BounceInterpolator()
+                    }.start()
+                    onInteractionListener.onLike(post)
+                }
 
-            share.setOnClickListener {
-                onInteractionListener.onShare(post)
+                share.setOnClickListener {
+                    onInteractionListener.onShare(post)
+                }
             }
         }
     }
