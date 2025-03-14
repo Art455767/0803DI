@@ -71,13 +71,13 @@ class FeedFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                adapter.loadStateFlow.collectLatest { state ->
-                    binding.swiperefresh.isRefreshing = state.refresh is LoadState.Loading
+                adapter.loadStateFlow.collectLatest{ state ->
+                    binding.swipeRefreshLayout.isRefreshing = state.refresh is LoadState.Loading
                 }
             }
         }
 
-        binding.swiperefresh.setOnRefreshListener {
+        binding.swipeRefreshLayout.setOnRefreshListener {
             lifecycleScope.launch {
                 postViewModel.refreshPosts()
             }

@@ -1,18 +1,16 @@
 package ru.netology.nmedia.adapter
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import ru.netology.nmedia.R
 import ru.netology.nmedia.databinding.CardMarkerBinding
 import ru.netology.nmedia.entity.MarkerPoint
 
 interface OnMarkerInteractionListener {
-    fun onEdit(marker: MarkerPoint) // Метод для редактирования маркера
-    fun onRemove(marker: MarkerPoint) // Метод для удаления маркера
+    fun onEdit(marker: MarkerPoint)
+    fun onRemove(marker: MarkerPoint)
 }
 
 class MarkersAdapter(
@@ -37,15 +35,14 @@ class MarkersAdapter(
 
         fun bind(marker: MarkerPoint) {
             binding.apply {
-                title.text = marker.description // Привязка данных маркера
-                // Другие привязки данных, если есть
+                title.text = marker.description
 
                 editButton.setOnClickListener {
-                    onMarkerInteractionListener.onEdit(marker) // Вызов метода редактирования
+                    onMarkerInteractionListener.onEdit(marker)
                 }
 
                 removeButton.setOnClickListener {
-                    onMarkerInteractionListener.onRemove(marker) // Вызов метода удаления
+                    onMarkerInteractionListener.onRemove(marker)
                 }
             }
         }
@@ -54,7 +51,7 @@ class MarkersAdapter(
 
 class MarkerDiffCallback : DiffUtil.ItemCallback<MarkerPoint>() {
     override fun areItemsTheSame(oldItem: MarkerPoint, newItem: MarkerPoint): Boolean {
-        return oldItem.id == newItem.id // Предполагается, что у MarkerPoint есть уникальный идентификатор
+        return oldItem.id == newItem.id
     }
 
     override fun areContentsTheSame(oldItem: MarkerPoint, newItem: MarkerPoint): Boolean {
