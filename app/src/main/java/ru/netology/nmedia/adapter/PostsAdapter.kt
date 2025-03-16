@@ -24,7 +24,7 @@ interface OnInteractionListener {
 }
 
 sealed class PostItem {
-    data class Post(val post: Post?) : PostItem()
+    data class Post(val post: Post) : PostItem()
     data object Loading : PostItem()
 }
 
@@ -32,6 +32,7 @@ sealed class PostItem {
 class PostsAdapter(
     private val onInteractionListener: OnInteractionListener,
 ) : PagingDataAdapter<Post, RecyclerView.ViewHolder>(PostDiffCallback()) {
+
 
     private val VIEW_TYPE_ITEM = 0
     private val VIEW_TYPE_LOADING = 1
