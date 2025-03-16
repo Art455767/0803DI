@@ -2,6 +2,7 @@ package ru.netology.nmedia.adapter
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.lifecycle.Lifecycle
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
@@ -26,6 +27,10 @@ class MarkersAdapter(
         getItem(position)?.let {
             holder.bind(it)
         }
+    }
+
+    fun submitData(lifecycle: Lifecycle, pagingData: List<MarkerPoint>?) {
+
     }
 
     class MarkerViewHolder(

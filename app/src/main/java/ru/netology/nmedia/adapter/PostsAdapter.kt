@@ -23,6 +23,12 @@ interface OnInteractionListener {
     fun onShare(post: Post) {}
 }
 
+sealed class PostItem {
+    data class Post(val post: Post?) : PostItem()
+    data object Loading : PostItem()
+}
+
+
 class PostsAdapter(
     private val onInteractionListener: OnInteractionListener,
 ) : PagingDataAdapter<Post, RecyclerView.ViewHolder>(PostDiffCallback()) {
@@ -31,7 +37,9 @@ class PostsAdapter(
     private val VIEW_TYPE_LOADING = 1
 
     override fun getItemViewType(position: Int): Int {
-        return if (getItem(position) == null) VIEW_TYPE_LOADING else VIEW_TYPE_ITEM
+        return if (getItem(position) == null)
+            VIEW_TYPE_LOADING else VIEW_TYPE_ITEM
+
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
